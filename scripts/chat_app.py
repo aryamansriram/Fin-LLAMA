@@ -44,7 +44,10 @@ llm = LlamaCpp(
 
 if __name__=="__main__":
     st.title('Llama-Chat')
-    response = st.text_input('Enter your response',on_change=u_callback,key='user_input')
+    response = st.chat_input('Enter your response',key='user_input')
+    if response:
+       
+        u_callback()
     if len(st.session_state['bot_responses'])==1 and len(st.session_state['user_responses'])==0:
         st.chat_message("ASSISTANT").write(st.session_state['bot_responses'][0])
     
