@@ -1,6 +1,11 @@
 from langchain_community.llms import LlamaCpp
 from langchain.chains import ConversationChain
-from langchain.memory import ConversationBufferWindowMemory
+from langchain.memory import ConversationBufferWindowMemory,ConversationBufferMemory
+from langchain.prompts import (
+    ChatPromptTemplate,
+    MessagesPlaceholder,
+    
+)
 
 if __name__=="__main__":
     llm = LlamaCpp(
@@ -11,17 +16,41 @@ if __name__=="__main__":
     top_p=1,
     )
 
-    conversation = ConversationChain(
-        llm = llm,
-        verbose=True,
-        memory=ConversationBufferWindowMemory(k=2)  
+    prompt = ChatPromptTemplate.from_messages(
+    messages=[
+        
+        
+        MessagesPlaceholder(variable_name="chat_history"),
+        ("human",'<s>[INST] {input} [/INST]')
+    ]
     )
 
-    print('Start chatting')
-    while True:
-        inp = input()
-        if inp == 'close':
-            break
-        # response = llm.invoke(inp)
-        response = conversation.predict(input='<s>[INST] '+inp+' [/INST]')
-        print("ASSISTANT: "+response)
+    
+    conversation = ConversationChain(
+        llm = llm,
+        prompt=prompt,
+        verbose=False,
+        memory=ConversationBufferMemory(memory_key='chat_history',return_messages=True)  
+    )
+
+    conversation.memory.save_context(
+        {'input':'Hi'},{'output':'Hello'}
+    )
+    conversation.memory.save_context(
+        {'input':'How are you'},{'output':'good'}
+    )
+
+    print(conversation.memory.load_memory_variables({}))
+
+    
+    # print('Start chatting')
+    # while True:
+    #     inp = input()
+    #     if inp == 'close':
+    #         break
+    #     # response = llm.invoke(inp)
+    #     response = conversation({"input":inp})['response']
+    #     #response = conversation.predict(input='<s>[INST] '+inp+' [/INST]')
+    #     print("ASSISTANT: "+response)
+    
+    # print(conversation.memory.load_memory_variables({}))
