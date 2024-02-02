@@ -4,7 +4,9 @@ from streamlit_extras.colored_header import colored_header
 from streamlit_extras.add_vertical_space import add_vertical_space
 from llama_cpp import Llama
 from langchain_community.llms import LlamaCpp
-
+from langchain.chains import ConversationChain
+from langchain.memory import ConversationBufferWindowMemory
+from langchain.prompts import ChatPromptTemplate
 
 if 'user_responses' not in st.session_state:
     st.session_state['user_responses'] = []
@@ -20,6 +22,9 @@ if 'cur_user' not in st.session_state:
 
 if 'cur_bot' not in st.session_state:
     st.session_state['cur_bot'] = ''
+
+if 'chat_history' not in st.session_state:
+    st.session_state['chat_history'] = ''
 
 def u_callback():
     if st.session_state.user_input:
@@ -41,10 +46,32 @@ llm = LlamaCpp(
     top_p=1,
     )
 
+# prompt = ChatPromptTemplate.from_messages(
+#     messages=[
+        
+        
+#         MessagesPlaceholder(variable_name="chat_history"),
+#         ("human",'<s>[INST] {input} [/INST]')
+#     ]
+# )
+
+
+
+conversation = ConversationChain(
+        llm = llm,
+        verbose=True,
+        memory=ConversationBufferWindowMemory(k=2)  
+    )
+
+for inp,op in zip(st.session_state['user_responses'],st.session_state['bot_responses']):
+    conversation.memory.save_context({'input': inp},{'output':op})
+
 
 if __name__=="__main__":
     st.title('Llama-Chat')
     response = st.chat_input('Enter your response',key='user_input')
+    
+    
     if response:
        
         u_callback()
@@ -62,7 +89,10 @@ if __name__=="__main__":
 
     if response:
         
-        bot_response = llm.stream(
+        # bot_response = llm.stream(
+        #     '<s>[INST] '+response+' [/INST]'
+        # )
+        bot_response = conversation.stream(
             '<s>[INST] '+response+' [/INST]'
         )
 
@@ -70,11 +100,12 @@ if __name__=="__main__":
         with st.chat_message("ASSISTANT"):
             placeholder = st.empty()
             for chunk in bot_response:
-                bot_res = bot_res+chunk
+                #print("C: ",chunk['response'])
+                bot_res = bot_res+chunk['response']
+                #bot_res = bot_res+chunk
                 placeholder.markdown(bot_res)
 
         st.session_state["bot_responses"].append(bot_res)
-
-
+        
 
         
